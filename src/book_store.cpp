@@ -8,6 +8,20 @@ ResizeStorageStatus resize_storage(Book *&storage, int size, int new_capacity) {
   // здесь мог бы быть ваш разносторонний и многогранный код ...
   // Tip 1: проведите валидацию аргументов функции
   // Tip 2: не забудьте высвободить ранее выделенную память под хранилище
+  if (storage == nullptr) {
+      return ResizeStorageStatus::NULL_STORAGE;
+  }
+  if ((new_capacity <= BookStore().GetCapacity()) or (new_capacity <= size)) {
+      return ResizeStorageStatus::INSUFFICIENT_CAPACITY;
+  }
+  if (size < 0) {
+      return ResizeStorageStatus::NEGATIVE_SIZE;
+  }
+  Book *new_storage = new Book[new_capacity];
+  std::copy(storage, storage + size, new_storage);
+  delete [] storage;
+  storage = new_storage;
+
   return ResizeStorageStatus::SUCCESS;
 }
 
@@ -17,6 +31,9 @@ BookStore::BookStore(const std::string &name) : name_{name} {
   if (name.empty()) {
     throw std::invalid_argument("BookStore::name must not be empty");
   }
+  BookStore::name_ = name;
+  BookStore::storage_capacity_ = int {kInitStorageCapacity};
+  BookStore::storage_ = new Book[kInitStorageCapacity];
 
   // здесь мог бы быть ваш сотрясающий землю и выделяющий память код ...
 }
@@ -25,15 +42,29 @@ BookStore::BookStore(const std::string &name) : name_{name} {
 BookStore::~BookStore() {
   // здесь мог бы быть ваш высвобождающий разум от негатива код ...
   // Tip 1: я свободен ..., словно память в куче: не забудьте обнулить указатель
+  delete [] BookStore::storage_;
+  BookStore::storage_ = {nullptr};
+  BookStore::storage_size_ = {0};
+  BookStore::storage_capacity_ = {0};
 }
 
 // 4. реализуйте метод ...
 void BookStore::AddBook(const Book &book) {
   if (storage_size_ == storage_capacity_) {
+      ResizeStorageStatus result = resize_storage(BookStore::storage_, BookStore::GetSize(), BookStore::storage_capacity_ + kCapacityCoefficient);
+      if (result != ResizeStorageStatus::SUCCESS) {
+          return;
+      } else {
+          BookStore::storage_capacity_ = storage_capacity_ + kCapacityCoefficient;
+      }
     // здесь мог бы быть ваш умопомрачительный код ...
     // Tip 1: используйте функцию resize_storage_internal, задав новый размер хранилища
     // Tip 2: не забудьте обработать статус вызова функции
   }
+
+  BookStore::storage_[storage_size_] = book;
+  BookStore::storage_size_++;
+
   // Tip 3: не забудьте добавить книгу в наше бездонное хранилище ...
 }
 
